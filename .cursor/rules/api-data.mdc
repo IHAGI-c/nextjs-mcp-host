@@ -1,0 +1,573 @@
+---
+description: SWR 데이터 페칭, React Data Grid 테이블 구현, PapaParse CSV 파일 처리, API 호출 및 응답 처리, 데이터 상태 관리, 커스텀 훅 개발, 무한 스크롤 구현, 에러 처리 및 로딩 상태 관리 작업에 도움이 되는 룰입니다.
+alwaysApply: false
+---
+# API 및 데이터 관리 가이드
+
+## 🌐 Axios HTTP 클라이언트
+
+### 기본 설정
+```typescript
+import axios, { AxiosResponse } from 'axios'
+
+// 기본 axios 인스턴스 생성
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// 요청 인터셉터 (토큰 추가)
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// 응답 인터셉터 (에러 처리)
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // 토큰 만료 처리
+      localStorage.removeItem('authToken')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+```
+
+### API 서비스 패턴
+```typescript
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
+interface CreateUserRequest {
+  name: string
+  email: string
+}
+
+class UserService {
+  private static endpoint = '/users'
+
+  static async getUsers(): Promise<User[]> {
+    const response = await apiClient.get<User[]>(this.endpoint)
+    return response.data
+  }
+
+  static async getUser(id: string): Promise<User> {
+    const response = await apiClient.get<User>(`${this.endpoint}/${id}`)
+    return response.data
+  }
+
+  static async createUser(data: CreateUserRequest): Promise<User> {
+    const response = await apiClient.post<User>(this.endpoint, data)
+    return response.data
+  }
+
+  static async updateUser(id: string, data: Partial<User>): Promise<User> {
+    const response = await apiClient.put<User>(`${this.endpoint}/${id}`, data)
+    return response.data
+  }
+
+  static async deleteUser(id: string): Promise<void> {
+    await apiClient.delete(`${this.endpoint}/${id}`)
+  }
+}
+```
+
+### SWR과 Axios 통합
+```typescript
+import useSWR from 'swr'
+
+// Axios fetcher 함수
+const axiosFetcher = (url: string) => apiClient.get(url).then(res => res.data)
+
+function useUsers() {
+  const { data, error, isLoading, mutate } = useSWR('/users', axiosFetcher)
+
+  return {
+    users: data,
+    isLoading,
+    isError: error,
+    mutate,
+  }
+}
+
+// 에러 처리가 포함된 커스텀 훅
+function useUserWithErrorHandling(id: string) {
+  const { data, error, isLoading } = useSWR(
+    id ? `/users/${id}` : null,
+    axiosFetcher,
+    {
+      onError: (error) => {
+        console.error('사용자 정보 로드 실패:', error)
+        toast.error('사용자 정보를 불러오는 중 오류가 발생했습니다')
+      }
+    }
+  )
+
+  return { user: data, error, isLoading }
+}
+```
+
+## 🔐 Next-Auth 인증 관리
+
+### 기본 설정 (pages/api/auth/[...nextauth].ts)
+```typescript
+import NextAuth from 'next-auth'
+import GithubProvider from 'next-auth/providers/github'
+import CredentialsProvider from 'next-auth/providers/credentials'
+
+export default NextAuth({
+  providers: [
+    GithubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        email: { label: '이메일', type: 'email' },
+        password: { label: '비밀번호', type: 'password' }
+      },
+      async authorize(credentials) {
+        // 사용자 인증 로직
+        const user = await authenticateUser(credentials)
+        return user || null
+      }
+    })
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.userId = user.id
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.userId
+      }
+      return session
+    }
+  },
+  pages: {
+    signIn: '/auth/signin',
+    error: '/auth/error',
+  },
+  session: {
+    strategy: 'jwt',
+  },
+})
+```
+
+### 클라이언트 사이드 인증 훅
+```typescript
+import { useSession, signIn, signOut } from 'next-auth/react'
+
+function useAuth() {
+  const { data: session, status } = useSession()
+
+  const login = async (email: string, password: string) => {
+    const result = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    })
+    
+    if (result?.error) {
+      toast.error('로그인에 실패했습니다')
+    }
+    
+    return result
+  }
+
+  const logout = async () => {
+    await signOut({ redirect: false })
+    toast.success('로그아웃되었습니다')
+  }
+
+  return {
+    user: session?.user,
+    isLoading: status === 'loading',
+    isAuthenticated: status === 'authenticated',
+    login,
+    logout,
+  }
+}
+```
+
+### 보호된 라우트 컴포넌트
+```typescript
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
+import { useEffect } from 'react'
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === 'loading') return // 로딩 중
+
+    if (!session) {
+      router.push('/auth/signin')
+      return
+    }
+  }, [session, status, router])
+
+  if (status === 'loading') {
+    return <div>로딩 중...</div>
+  }
+
+  if (!session) {
+    return null
+  }
+
+  return <>{children}</>
+}
+```
+
+## 🛡️ Zod 스키마 검증
+
+### 기본 스키마 정의
+```typescript
+import { z } from 'zod'
+
+// 사용자 스키마
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, '이름은 필수입니다'),
+  email: z.string().email('올바른 이메일 주소를 입력해주세요'),
+  age: z.number().min(0, '나이는 0 이상이어야 합니다').optional(),
+  role: z.enum(['user', 'admin']).default('user'),
+})
+
+// 타입 추출
+type User = z.infer<typeof UserSchema>
+
+// 생성 요청 스키마
+const CreateUserSchema = UserSchema.omit({ id: true })
+type CreateUserRequest = z.infer<typeof CreateUserSchema>
+```
+
+### API 요청/응답 검증
+```typescript
+// API 핸들러에서 검증
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'POST') {
+    try {
+      const validatedData = CreateUserSchema.parse(req.body)
+      
+      // 검증된 데이터로 사용자 생성
+      const newUser = await createUser(validatedData)
+      
+      res.status(201).json(newUser)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ 
+          error: '유효하지 않은 데이터', 
+          details: error.errors 
+        })
+      } else {
+        res.status(500).json({ error: '서버 오류' })
+      }
+    }
+  }
+}
+```
+
+### 폼 검증 통합
+```typescript
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+
+const LoginSchema = z.object({
+  email: z.string().email('올바른 이메일을 입력해주세요'),
+  password: z.string().min(8, '비밀번호는 8자 이상이어야 합니다'),
+})
+
+type LoginForm = z.infer<typeof LoginSchema>
+
+function LoginForm() {
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors } 
+  } = useForm<LoginForm>({
+    resolver: zodResolver(LoginSchema)
+  })
+
+  const onSubmit = (data: LoginForm) => {
+    // 검증된 데이터 처리
+    console.log(data)
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input
+        {...register('email')}
+        placeholder="이메일"
+        className={errors.email ? 'border-red-500' : ''}
+      />
+      {errors.email && <span className="text-red-500">{errors.email.message}</span>}
+      
+      <input
+        {...register('password')}
+        type="password"
+        placeholder="비밀번호"
+        className={errors.password ? 'border-red-500' : ''}
+      />
+      {errors.password && <span className="text-red-500">{errors.password.message}</span>}
+      
+      <button type="submit">로그인</button>
+    </form>
+  )
+}
+```
+
+### 환경 변수 검증
+```typescript
+// lib/env.ts
+const envSchema = z.object({
+  NEXT_PUBLIC_API_URL: z.string().url(),
+  GITHUB_CLIENT_ID: z.string(),
+  GITHUB_CLIENT_SECRET: z.string(),
+  NEXTAUTH_SECRET: z.string(),
+  NEXTAUTH_URL: z.string().url(),
+})
+
+export const env = envSchema.parse(process.env)
+```
+
+## 🔄 SWR 데이터 페칭
+
+### 기본 사용법
+```typescript
+import useSWR from 'swr'
+
+const fetcher = (url: string) => fetch(url).then(res => res.json())
+
+function Profile() {
+  const { data, error, isLoading } = useSWR('/api/user', fetcher)
+
+  if (error) return <div>에러가 발생했습니다</div>
+  if (isLoading) return <div>로딩 중...</div>
+  
+  return <div>안녕하세요 {data.name}!</div>
+}
+```
+
+### 커스텀 훅 패턴
+```typescript
+function useUser(id: string) {
+  const { data, error, isLoading, mutate } = useSWR(
+    id ? `/api/user/${id}` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  )
+
+  return {
+    user: data,
+    isLoading,
+    isError: error,
+    mutate,
+  }
+}
+```
+
+### 에러 처리
+```typescript
+const { data, error } = useSWR('/api/data', fetcher, {
+  onError: (error) => {
+    console.error('데이터 페칭 에러:', error)
+    toast.error('데이터를 불러오는 중 오류가 발생했습니다')
+  },
+  onSuccess: (data) => {
+    console.log('데이터 로드 완료:', data)
+  }
+})
+```
+
+## 📊 React Data Grid
+
+### 기본 설정
+```typescript
+import DataGrid from 'react-data-grid'
+
+interface Row {
+  id: number
+  name: string
+  email: string
+  createdAt: string
+}
+
+const columns = [
+  { key: 'name', name: '이름', sortable: true },
+  { key: 'email', name: '이메일', sortable: true },
+  { 
+    key: 'createdAt', 
+    name: '생성일', 
+    formatter: ({ row }: { row: Row }) => 
+      format(new Date(row.createdAt), 'yyyy-MM-dd')
+  },
+]
+
+function DataTable() {
+  const [rows, setRows] = useState<Row[]>([])
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      defaultColumnOptions={{ sortable: true }}
+      className="fill-grid"
+    />
+  )
+}
+```
+
+### 커스텀 셀 렌더러
+```typescript
+function ActionCell({ row }: { row: Row }) {
+  const handleEdit = () => {
+    // 편집 로직
+  }
+
+  const handleDelete = () => {
+    // 삭제 로직
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Button size="sm" variant="outline" onClick={handleEdit}>
+        편집
+      </Button>
+      <Button size="sm" variant="destructive" onClick={handleDelete}>
+        삭제
+      </Button>
+    </div>
+  )
+}
+```
+
+## 📄 PapaParse CSV 처리
+
+### 파일 업로드 및 파싱
+```typescript
+import Papa from 'papaparse'
+
+const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  Papa.parse(file, {
+    complete: (results) => {
+      console.log('파싱 완료:', results.data)
+      setData(results.data)
+    },
+    header: true,
+    skipEmptyLines: true,
+    error: (error) => {
+      console.error('파싱 에러:', error)
+      toast.error('CSV 파일 처리 중 오류가 발생했습니다')
+    }
+  })
+}
+```
+
+### CSV 다운로드
+```typescript
+const downloadCSV = (data: any[], filename: string) => {
+  const csv = Papa.unparse(data)
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', filename)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+}
+```
+
+## 🛠️ 유틸리티 함수
+
+### 날짜 처리 (date-fns)
+```typescript
+import { format, parseISO, isValid } from 'date-fns'
+import { ko } from 'date-fns/locale'
+
+export const formatDate = (dateString: string) => {
+  const date = parseISO(dateString)
+  return isValid(date) ? format(date, 'yyyy년 MM월 dd일', { locale: ko }) : '잘못된 날짜'
+}
+```
+
+### 고유 ID 생성 (nanoid)
+```typescript
+import { nanoid } from 'nanoid'
+
+export const generateId = () => nanoid()
+export const generateShortId = () => nanoid(8)
+```
+
+### 깊은 객체 비교 (fast-deep-equal)
+```typescript
+import isEqual from 'fast-deep-equal'
+
+const useDeepCompareMemo = <T>(value: T): T => {
+  const ref = useRef<T>(value)
+  
+  if (!isEqual(ref.current, value)) {
+    ref.current = value
+  }
+  
+  return ref.current
+}
+```
+
+## 🎯 최적화 패턴
+
+### 디바운스 훅
+```typescript
+import { useDebouncedCallback } from 'use-debounce'
+
+const debouncedSave = useDebouncedCallback(
+  (value: string) => {
+    // 저장 로직
+  },
+  500
+)
+```
+
+### 무한 스크롤
+```typescript
+import { useSWRInfinite } from 'swr/infinite'
+
+const getKey = (pageIndex: number, previousPageData: any) => {
+  if (previousPageData && !previousPageData.length) return null
+  return `/api/data?page=${pageIndex}`
+}
+
+const { data, error, size, setSize } = useSWRInfinite(getKey, fetcher)
+```

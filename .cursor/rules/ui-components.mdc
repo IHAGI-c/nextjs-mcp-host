@@ -1,0 +1,376 @@
+---
+description: Shadcn UI 컴포넌트 개발, React 컴포넌트 스타일링, Tailwind CSS 활용, 접근성 구현, Framer Motion 애니메이션, 반응형 디자인, 컴포넌트 props 및 variants 설계, 복합 컴포넌트 패턴 구현 작업에 도움이 되는 룰입니다.
+globs: ["**/components/**/*.{ts,tsx}", "**/ui/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+
+# UI 컴포넌트 개발 가이드
+
+## 📁 컴포넌트 구조
+
+### Shadcn UI 컴포넌트 패턴
+```typescript
+import type * as React from 'react';
+import { cn } from '@/lib/utils';
+import { cva, type VariantProps } from 'class-variance-authority';
+
+// 1. Variants 정의
+const componentVariants = cva(
+  'base-classes',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground',
+        secondary: 'bg-secondary text-secondary-foreground',
+        outline: 'border border-input',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+      },
+      size: {
+        sm: 'h-8 px-3 text-sm',
+        md: 'h-10 px-4',
+        lg: 'h-12 px-6 text-lg',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'md',
+    },
+  },
+);
+
+// 2. Props 인터페이스
+interface ComponentProps 
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof componentVariants> {
+  asChild?: boolean;
+}
+
+// 3. forwardRef 컴포넌트
+const Component = React.forwardRef<HTMLDivElement, ComponentProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : 'div';
+    
+    return (
+      <Comp
+        className={cn(componentVariants({ variant, size }), className)}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
+Component.displayName = 'Component';
+
+export { Component, componentVariants };
+```
+
+### 복합 컴포넌트 패턴 (Radix UI 기반)
+```typescript
+// Dialog 컴포넌트 예시
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+
+const Dialog = DialogPrimitive.Root;
+const DialogTrigger = DialogPrimitive.Trigger;
+const DialogPortal = DialogPrimitive.Portal;
+const DialogClose = DialogPrimitive.Close;
+
+const DialogOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      'fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out',
+      className,
+    )}
+    {...props}
+  />
+));
+DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
+
+// 복합 컴포넌트 내보내기
+export {
+  Dialog,
+  DialogTrigger,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+};
+```
+
+## 🎨 스타일링 원칙
+
+### Tailwind CSS 활용
+```typescript
+// ✅ 권장: 유틸리티 클래스 우선
+className="flex items-center justify-between p-4 rounded-lg border"
+
+// ✅ 조건부 스타일링
+className={cn(
+  'base-classes',
+  variant === 'destructive' && 'bg-destructive text-destructive-foreground',
+  size === 'sm' && 'h-8 px-3 text-sm',
+  className,
+)}
+
+// ❌ 비권장: 인라인 스타일
+style={{ backgroundColor: 'red' }}
+```
+
+### CVA (Class Variance Authority) 활용
+```typescript
+import { cva } from 'class-variance-authority';
+
+const buttonVariants = cva(
+  // 기본 클래스
+  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        outline: 'border border-input hover:bg-accent hover:text-accent-foreground',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        link: 'text-primary underline-offset-4 hover:underline',
+      },
+      size: {
+        default: 'h-9 px-4 py-2',
+        sm: 'h-8 rounded-md px-3 text-xs',
+        lg: 'h-10 rounded-md px-8',
+        icon: 'h-9 w-9',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  },
+);
+```
+
+## 🔧 접근성 (A11y) 가이드
+
+### 필수 ARIA 속성
+```typescript
+// Form 컴포넌트
+<input
+  aria-label="사용자 이름"
+  aria-describedby="username-error"
+  aria-invalid={hasError}
+  aria-required={required}
+/>
+
+// Button 컴포넌트
+<button
+  aria-expanded={isOpen}
+  aria-haspopup="menu"
+  aria-controls="menu-id"
+>
+  메뉴 열기
+</button>
+
+// Dialog 컴포넌트
+<DialogContent
+  role="dialog"
+  aria-labelledby="dialog-title"
+  aria-describedby="dialog-description"
+>
+  <DialogTitle id="dialog-title">제목</DialogTitle>
+  <DialogDescription id="dialog-description">설명</DialogDescription>
+</DialogContent>
+```
+
+### 키보드 내비게이션
+```typescript
+const handleKeyDown = (e: React.KeyboardEvent) => {
+  switch (e.key) {
+    case 'Escape':
+      onClose();
+      break;
+    case 'Enter':
+    case ' ':
+      e.preventDefault();
+      onClick();
+      break;
+    case 'ArrowDown':
+      e.preventDefault();
+      focusNext();
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      focusPrevious();
+      break;
+  }
+};
+```
+
+## 🎭 애니메이션 통합
+
+### Framer Motion 활용
+```typescript
+import { motion, AnimatePresence } from 'framer-motion';
+
+// 페이드 인/아웃
+const FadeInOut = ({ children, isVisible }: { children: React.ReactNode; isVisible: boolean }) => (
+  <AnimatePresence>
+    {isVisible && (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+      >
+        {children}
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+// 스케일 애니메이션
+const ScaleButton = motion.button.attrs({
+  whileHover: { scale: 1.05 },
+  whileTap: { scale: 0.95 },
+  transition: { duration: 0.1 },
+});
+```
+
+### Tailwind CSS 애니메이션
+```typescript
+// 기본 Tailwind 애니메이션 활용
+className="transition-all duration-200 hover:scale-105"
+
+// 커스텀 애니메이션 (globals.css에 정의)
+className="animate-in slide-in-from-top-2 duration-300"
+```
+
+## 📊 상태 관리
+
+### 로컬 상태 관리
+```typescript
+import { useState, useReducer } from 'react';
+import { useLocalStorage, useToggle } from 'usehooks-ts';
+
+// 단순 상태
+const [isOpen, setIsOpen] = useState(false);
+
+// 토글 상태
+const [isDarkMode, toggleDarkMode] = useToggle();
+
+// 로컬 스토리지 동기화
+const [theme, setTheme] = useLocalStorage('theme', 'light');
+
+// 복잡한 상태 (useReducer)
+type State = {
+  loading: boolean;
+  error: string | null;
+  data: any[];
+};
+
+type Action = 
+  | { type: 'LOADING' }
+  | { type: 'SUCCESS'; payload: any[] }
+  | { type: 'ERROR'; payload: string };
+
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'LOADING':
+      return { ...state, loading: true, error: null };
+    case 'SUCCESS':
+      return { loading: false, error: null, data: action.payload };
+    case 'ERROR':
+      return { ...state, loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+const [state, dispatch] = useReducer(reducer, {
+  loading: false,
+  error: null,
+  data: [],
+});
+```
+
+## 🔨 현재 프로젝트 설치된 컴포넌트들
+
+### 사용 가능한 Shadcn UI 컴포넌트
+```typescript
+// 기본 컴포넌트들
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
+// 오버레이 컴포넌트들
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+```
+
+### Radix UI Primitives 활용
+```typescript
+// Alert Dialog
+import * as AlertDialog from '@radix-ui/react-alert-dialog';
+
+// Select
+import * as Select from '@radix-ui/react-select';
+
+// Label
+import * as Label from '@radix-ui/react-label';
+
+// Separator
+import * as Separator from '@radix-ui/react-separator';
+```
+
+## 🚀 성능 최적화
+
+### React.memo 활용
+```typescript
+const OptimizedComponent = React.memo(({ data }: { data: any[] }) => {
+  return <div>{/* 렌더링 로직 */}</div>;
+});
+
+// 복잡한 비교 함수
+const areEqual = (prevProps: Props, nextProps: Props) => {
+  return fastDeepEqual(prevProps, nextProps);
+};
+
+const MemoizedComponent = React.memo(Component, areEqual);
+```
+
+### useMemo & useCallback
+```typescript
+const expensiveValue = useMemo(() => {
+  return heavyCalculation(data);
+}, [data]);
+
+const handleClick = useCallback((id: string) => {
+  onItemClick(id);
+}, [onItemClick]);
+```
+
+## 📱 반응형 디자인 패턴
+
+### Tailwind Breakpoints
+```typescript
+// 모바일 우선 접근
+className="w-full sm:w-auto md:w-1/2 lg:w-1/3 xl:w-1/4"
+
+// 조건부 표시/숨김
+className="hidden md:block" // 모바일에서 숨김, 중간 크기부터 표시
+className="block md:hidden" // 모바일에서만 표시
+```
+
+### 컨테이너 쿼리 (최신 기능)
+```typescript
+className="@container"
+className="@sm:grid-cols-2 @lg:grid-cols-3"
+```
+
+항상 위 가이드라인을 준수하여 일관성 있고 접근 가능한 UI 컴포넌트를 개발하세요.
