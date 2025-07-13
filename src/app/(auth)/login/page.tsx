@@ -2,71 +2,84 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useState } from 'react';
-import { toast } from '@/components/toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
+import { loginSchema, LoginFormValues } from '@/lib/schemas';
+import { useAuth } from '@/hooks/use-auth';
+import { useLocales } from '@/locales/use-locales';
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
 
-import { login, type LoginActionState } from '../actions';
-import { useSession } from 'next-auth/react';
-
 export default function Page() {
   const router = useRouter();
-
-  const [email, setEmail] = useState('');
+  const { login, loginLoading } = useAuth();
+  const { t } = useLocales();
   const [isSuccessful, setIsSuccessful] = useState(false);
 
-  const [state, formAction] = useActionState<LoginActionState, FormData>(
-    login,
-    {
-      status: 'idle',
+  // useForm 설정
+  const {
+    formState: { errors },
+    setError,
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
     },
-  );
+  });
 
-  const { update: updateSession } = useSession();
+  // 폼 제출 로직
+  const handleSubmit = async (formData: FormData) => {
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
-  useEffect(() => {
-    if (state.status === 'failed') {
-      toast({
-        type: 'error',
-        description: 'Invalid credentials!',
+    try {
+      // useAuth의 login 함수 사용
+      const result = await login({
+        email,
+        password,
       });
-    } else if (state.status === 'invalid_data') {
-      toast({
-        type: 'error',
-        description: 'Failed validating your submission!',
-      });
-    } else if (state.status === 'success') {
-      setIsSuccessful(true);
-      updateSession();
-      router.refresh();
+
+      // 결과 처리
+      if (result.success) {
+        toast.success(result.message);
+        setIsSuccessful(true);
+        setTimeout(() => {
+          router.push('/');
+        }, 1000);
+      } else {
+        // 서버 에러 처리
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      toast.error(t('auth.signInProcessError'));
     }
-  }, [state.status]);
-
-  const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get('email') as string);
-    formAction(formData);
   };
 
   return (
     <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
       <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col gap-12">
         <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
-          <h3 className="text-xl font-semibold dark:text-zinc-50">Sign In</h3>
+          <h3 className="text-xl font-semibold dark:text-zinc-50">{t('auth.signIn')}</h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Use your email and password to sign in
+            {t('auth.signInDescription')}
           </p>
         </div>
-        <AuthForm action={handleSubmit} defaultEmail={email}>
-          <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>
+        <AuthForm action={handleSubmit} defaultEmail="">
+          <SubmitButton isSuccessful={isSuccessful || loginLoading}>
+            {t('auth.signIn')}
+          </SubmitButton>
           <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
-            {"Don't have an account? "}
+            {t('auth.dontHaveAccount')}{' '}
             <Link
               href="/register"
               className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
             >
-              Sign up
+              {t('auth.signUp')}
             </Link>
             {' for free.'}
           </p>

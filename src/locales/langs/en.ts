@@ -1,0 +1,58 @@
+export default {
+  common: {
+    loading: 'Loading...',
+    error: 'Error',
+    success: 'Success',
+    cancel: 'Cancel',
+    save: 'Save',
+    delete: 'Delete',
+    edit: 'Edit',
+    create: 'Create',
+    search: 'Search',
+    refresh: 'Refresh',
+    logout: 'Log out',
+    none: 'None',
+    selectAll: 'Select all',
+    close: 'Close',
+    confirm: 'Confirm',
+  },
+  auth: {
+    signIn: 'Sign In',
+    signInDescription: 'Use your email and password to sign in',
+    signUp: 'Sign Up',
+    signUpDescription: 'Create an account with your email and password',
+    signUpButton: 'Sign Up',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    signInProcessing: 'Signing in...',
+    signUpProcessing: 'Signing up...',
+    signInProcessError: 'An error occurred during sign in',
+    signInInvalidCredentials: 'Invalid email or password',
+    signInError: 'Sign in failed',
+    signInSuccess: 'Sign in successful',
+    signUpError: 'Sign up failed',
+    signUpSuccess: 'Sign up successful',
+    signUpEmailExists: 'Email already exists',
+    dontHaveAccount: "Don't have an account?",
+    alreadyHaveAccount: 'Already have an account?',
+    unknownError: 'An unknown error occurred',
+    emailVerification: {
+      title: 'Email Verification',
+      subtitle: 'Please check your email',
+      message: 'Please check your email for verification',
+      description: 'Click the link in your email to activate your account',
+      emailNotReceived: 'Did not receive the email?',
+      goToLogin: 'Go to login page'
+    }
+  },
+  theme: {
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System'
+  },
+  language: {
+    english: 'English',
+    korean: '한국어'
+  }
+};

@@ -1,0 +1,58 @@
+export default {
+  common: {
+    loading: '로딩 중...',
+    error: '오류',
+    success: '성공',
+    cancel: '취소',
+    save: '저장',
+    delete: '삭제',
+    edit: '편집',
+    create: '생성',
+    search: '검색',
+    refresh: '새로고침',
+    logout: '로그아웃',
+    none: '없음',
+    selectAll: '모두 선택',
+    close: '닫기',
+    confirm: '확인',
+  },
+  auth: {
+    signIn: '로그인',
+    signInDescription: '이메일과 비밀번호를 입력하여 로그인하세요',
+    signUp: '회원가입',
+    signUpDescription: '이메일과 비밀번호로 계정을 생성하세요',
+    signUpButton: '회원가입',
+    email: '이메일',
+    password: '비밀번호',
+    confirmPassword: '비밀번호 확인',
+    signInProcessing: '로그인 중...',
+    signUpProcessing: '회원가입 중...',
+    signInProcessError: '로그인 중 오류가 발생했습니다',
+    signInInvalidCredentials: '이메일 또는 비밀번호가 올바르지 않습니다',
+    signInError: '로그인에 실패했습니다',
+    signInSuccess: '로그인이 완료되었습니다',
+    signUpError: '회원가입에 실패했습니다',
+    signUpSuccess: '회원가입이 완료되었습니다',
+    signUpEmailExists: '이미 존재하는 이메일입니다',
+    dontHaveAccount: '계정이 없으신가요?',
+    alreadyHaveAccount: '이미 계정이 있으신가요?',
+    unknownError: '알 수 없는 오류가 발생했습니다',
+    emailVerification: {
+      title: '이메일 확인',
+      subtitle: '이메일을 확인해주세요',
+      message: '이메일 확인을 위해 메일을 확인해주세요',
+      description: '이메일 링크를 클릭하여 계정을 활성화하세요',
+      emailNotReceived: '이메일을 받지 못하셨나요?',
+      goToLogin: '로그인 페이지로 이동'
+    }
+  },
+  theme: {
+    light: '라이트',
+    dark: '다크',
+    system: '시스템'
+  },
+  language: {
+    english: 'English',
+    korean: '한국어'
+  }
+};
