@@ -18,19 +18,6 @@ export default function Page() {
   const { login, loginLoading } = useAuth();
   const { t } = useLocales();
   const [isSuccessful, setIsSuccessful] = useState(false);
-
-  // useForm 설정
-  const {
-    formState: { errors },
-    setError,
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
-
   // 폼 제출 로직
   const handleSubmit = async (formData: FormData) => {
     const email = formData.get('email') as string;
