@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { useActionState, useEffect, useState } from 'react';
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
@@ -12,10 +11,9 @@ import { type LoginActionState, login } from '../actions';
 
 export default function Page() {
   const { t } = useLocales();
-  const router = useRouter();
-
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
-  const [isSuccessful, setIsSuccessful] = useState(false);
+  const [isSuccessful, _setIsSuccessful] = useState(false);
 
   const [state, formAction] = useActionState<LoginActionState, FormData>(
     login,
@@ -24,25 +22,31 @@ export default function Page() {
     },
   );
 
-  const { update: updateSession } = useSession();
+  useEffect(() => {
+    // URL 파라미터에서 에러 메시지 확인 (이메일 인증 실패 등)
+    const errorFromUrl = searchParams.get('error');
+    if (errorFromUrl) {
+      toast({
+        type: 'error',
+        description: errorFromUrl,
+      });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (state.status === 'failed') {
       toast({
         type: 'error',
-        description: 'Invalid credentials!',
+        description: state.error || 'Invalid credentials!',
       });
     } else if (state.status === 'invalid_data') {
       toast({
         type: 'error',
-        description: 'Failed validating your submission!',
+        description: state.error || 'Failed validating your submission!',
       });
-    } else if (state.status === 'success') {
-      setIsSuccessful(true);
-      updateSession();
-      router.refresh();
     }
-  }, [state.status]);
+    // 성공 처리는 서버 액션에서 리다이렉트로 처리됨
+  }, [state]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get('email') as string);

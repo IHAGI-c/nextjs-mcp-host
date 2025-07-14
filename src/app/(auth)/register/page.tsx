@@ -1,130 +1,139 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
-
+import { useActionState, useEffect, useState } from 'react';
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
+import { toast } from '@/components/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-
-import { useAuth } from '@/hooks/use-auth';
-import { signupSchema, SignupFormValues } from '@/lib/schemas';
 import { useLocales } from '@/locales/use-locales';
+import { type RegisterActionState, register } from '../actions';
 
 export default function Page() {
-  const router = useRouter();
-  const { register: registerUser, registerLoading } = useAuth();
-  const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
-  const [isSuccessful, setIsSuccessful] = useState(false);
   const { t } = useLocales();
-  
-  // useForm 설정
-  const {
-    formState: { errors },
-    setError,
-  } = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      confirmPassword: "",
+  const [email, setEmail] = useState('');
+  const [emailVerificationRequired, setEmailVerificationRequired] =
+    useState(false);
+  const [isSuccessful, _setIsSuccessful] = useState(false);
+  const [clientError, setClientError] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [state, formAction] = useActionState<RegisterActionState, FormData>(
+    register,
+    {
+      status: 'idle',
     },
-  });
+  );
 
-  // 폼 제출 로직
-  const handleSubmit = async (formData: FormData) => {
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    const confirmPassword = formData.get('confirmPassword') as string;
-
-    // 클라이언트 측 비밀번호 확인
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match!');
-      return;
-    }
-
-    try {
-      // useAuth의 register 함수 사용
-      const result = await registerUser({
-        email,
-        password,
-      });
-
-      // 결과 처리
-      if (result.success) {
-        // 이메일 확인이 필요한 경우
-        if (result.message.includes('이메일') && result.message.includes('인증')) {
-          setEmailVerificationRequired(true);
-          toast.success(t('auth.signUpSuccess'));
-        } else {
-          // 일반적인 회원가입 성공
-          toast.success(result.message);
-          setIsSuccessful(true);
-          setTimeout(() => {
-            router.push("/");
-          }, 1000);
-        }
-      } else {
-        // 서버 에러 처리
-        toast.error(result.message);
-      }
-    } catch (error) {
-      console.error("회원가입 오류:", error);
-      toast.error("회원가입 처리 중 오류가 발생했습니다.");
-    }
+  // 비밀번호 실시간 검증을 위한 핸들러
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
   };
 
-  // 이메일 확인 안내 화면
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value);
+  };
+
+  useEffect(() => {
+    if (state.status === 'user_exists') {
+      toast({
+        type: 'error',
+        description: state.error || 'Account already exists!',
+      });
+    } else if (state.status === 'failed') {
+      toast({
+        type: 'error',
+        description: state.error || 'Failed to create account!',
+      });
+    } else if (state.status === 'invalid_data') {
+      toast({
+        type: 'error',
+        description: state.error || 'Failed validating your submission!',
+      });
+    } else if (state.status === 'passwords_dont_match') {
+      toast({
+        type: 'error',
+        description: state.error || 'Passwords do not match!',
+      });
+    } else if (state.status === 'success' && state.emailVerificationRequired) {
+      setEmailVerificationRequired(true);
+      toast({
+        type: 'success',
+        description:
+          '이메일 인증 링크를 발송했습니다! 이메일을 확인하여 회원가입을 완료해주세요.',
+      });
+    }
+  }, [state]);
+
+  // 비밀번호와 확인 비밀번호가 변경될 때마다 일치 여부 확인
+  useEffect(() => {
+    if (password && confirmPassword) {
+      if (password !== confirmPassword) {
+        setClientError('Passwords do not match!');
+      } else {
+        setClientError('');
+      }
+    } else {
+      setClientError('');
+    }
+  }, [password, confirmPassword]);
+
+  const handleSubmit = (formData: FormData) => {
+    setEmail(formData.get('email') as string);
+    formAction(formData);
+  };
+
   if (emailVerificationRequired) {
     return (
       <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 pb-2">
-            <h1 className="text-2xl font-bold tracking-tight dark:text-gray-100">{t('auth.emailVerification.title')}</h1>
-            <p className="text-sm text-muted-foreground dark:text-gray-300">{t('auth.emailVerification.subtitle')}</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg space-y-2">
-              <p className="text-sm text-blue-900 dark:text-blue-200">
-                <strong>{t('auth.emailVerification.message')}</strong>
-              </p>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                {t('auth.emailVerification.description')}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground dark:text-gray-300 text-center">
-                {t('auth.emailVerification.emailNotReceived')}
-              </p>
-            </div>
-            <button 
-              className="w-full bg-black dark:bg-white dark:text-black text-white hover:bg-black/90 dark:hover:bg-white/90 px-4 py-2 rounded-md"
-              onClick={() => router.push("/login")}
-            >
-              {t('auth.emailVerification.goToLogin')}
-            </button>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-md overflow-hidden rounded-2xl">
+          <Card className="w-full border-0 bg-card">
+            <CardHeader className="text-center">
+              <h1 className="text-xl font-semibold dark:text-zinc-50">
+                {t('auth.checkEmail')}
+              </h1>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-center text-sm text-gray-600 dark:text-zinc-400">
+                  <strong>{email}</strong>로 인증 이메일을 발송했습니다.
+                </p>
+                <p className="text-center text-sm text-gray-600 dark:text-zinc-400">
+                  이메일의 인증 링크를 클릭하여 회원가입을 완료해주세요.
+                </p>
+                <p className="text-center text-xs text-gray-500 dark:text-zinc-500">
+                  이메일 인증을 완료하지 않으면 로그인할 수 없습니다.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl gap-12 flex flex-col">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col gap-12">
         <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
-          <h3 className="text-xl font-semibold dark:text-zinc-50">{t('auth.signUp')}</h3>
+          <h3 className="text-xl font-semibold dark:text-zinc-50">
+            {t('auth.createAccount')}
+          </h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            {t('auth.signUpDescription')}
+            {t('auth.createAccountDescription')}
           </p>
         </div>
-        <AuthForm action={handleSubmit} defaultEmail="" showConfirmPassword={true}>
-          <SubmitButton isSuccessful={isSuccessful || registerLoading}>
-            {t('auth.signUpButton')}
+        <AuthForm
+          action={handleSubmit}
+          defaultEmail={email}
+          showConfirmPassword={true}
+          clientError={clientError}
+          onPasswordChange={handlePasswordChange}
+          onConfirmPasswordChange={handleConfirmPasswordChange}
+        >
+          <SubmitButton isSuccessful={isSuccessful}>
+            {t('auth.signUp')}
           </SubmitButton>
           <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
             {t('auth.alreadyHaveAccount')}{' '}
@@ -133,8 +142,8 @@ export default function Page() {
               className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
             >
               {t('auth.signIn')}
-            </Link>
-            {' instead.'}
+            </Link>{' '}
+            {t('auth.here')}.
           </p>
         </AuthForm>
       </div>

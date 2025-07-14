@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthSession } from './auth/auth-utils';
+import { getCurrentUser } from './supabase/auth-server';
 
 export const API_URL = process.env.API_URL
   ? process.env.API_URL
@@ -11,10 +11,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const session = await getAuthSession();
+  const session = await getCurrentUser();
 
-  if (session?.user?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.user.accessToken}`;
+  if (session?.user?.id) {
+    config.headers.Authorization = `Bearer ${session.user.id}`;
   }
 
   return config;
@@ -34,9 +34,9 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       // 세션 갱신
-      const session = await getAuthSession();
-      if (session?.user?.accessToken) {
-        originalRequest.headers.Authorization = `Bearer ${session.user.accessToken}`;
+      const session = await getCurrentUser();
+      if (session?.user?.id) {
+        originalRequest.headers.Authorization = `Bearer ${session.user.id}`;
         return api(originalRequest);
       }
     }

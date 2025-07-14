@@ -1,59 +1,97 @@
-import { withAuth } from "next-auth/middleware"
-import { NextResponse } from "next/server"
+import { createServerClient } from '@supabase/ssr';
+import { type NextRequest, NextResponse } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
-    // console.log("🔵 MIDDLEWARE: 미들웨어 함수 실행됨", req.nextUrl.pathname)
-    
-    // 토큰 세션 만료 체크 및 리다이렉트 처리
-    const token = req.nextauth?.token
-    if (!token && !req.nextUrl.pathname.startsWith('/signin') && !req.nextUrl.pathname.startsWith('/signup')) {
-      // console.log("🔴 MIDDLEWARE: 세션 만료됨, 로그인 페이지로 리다이렉트")
-      return NextResponse.redirect(new URL('/signin', req.url))
-    }
-    
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const pathname = req.nextUrl.pathname
-        // console.log('token ===> ', token)
-        
-        // console.log("🟡 AUTHORIZED: 콜백 실행됨")
-        // console.log("  - pathname:", pathname)
-        // console.log("  - token exists:", !!token)
-        
-        // 인증 관련 페이지는 항상 접근 가능
-        if (pathname === '/signin' || pathname === '/signup') {
-          // console.log("  - 결과: AUTH 페이지 - 접근 허용")
-          return true
-        }
-        
-        // 그 외 모든 페이지는 토큰이 있어야 접근 가능
-        const result = !!token
-        // console.log("  - 결과: PROTECTED 페이지 - 접근", result ? "허용" : "거부")
-        return result
+// Legacy NextAuth imports (commented out for migration)
+// import { getToken } from 'next-auth/jwt';
+// import { guestRegex, isDevelopmentEnvironment } from '@/lib/constants';
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  /*
+   * Playwright starts the dev server and requires a 200 status to
+   * begin the tests, so this ensures that the tests can start
+   */
+  if (pathname.startsWith('/ping')) {
+    return new Response('pong', { status: 200 });
+  }
+
+  // Skip auth check for Supabase Auth API routes
+  if (pathname.startsWith('/api/auth') || pathname.startsWith('/auth/')) {
+    return NextResponse.next();
+  }
+
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          );
+        },
       },
     },
-    pages: {
-      signIn: '/signin',
-      signOut: '/signout',
-      error: '/signin', // 인증 오류 발생 시 로그인 페이지로 리다이렉트
-    },
+  );
+
+  // 사용자 세션 확인
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  // 인증이 필요한 보호된 경로들
+  const protectedPaths = ['/', '/chat'];
+  const isProtectedPath = protectedPaths.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+
+  // 사용자가 없고 보호된 경로에 접근하려는 경우
+  if (!user && isProtectedPath) {
+    const redirectUrl = encodeURIComponent(request.url);
+    return NextResponse.redirect(
+      new URL(`/api/auth/guest?redirectUrl=${redirectUrl}`, request.url),
+    );
   }
-)
+
+  // 인증된 사용자(게스트 포함)가 auth 페이지에 접근하는 경우 차단
+  if (user) {
+    const authPages = ['/login', '/register'];
+    if (authPages.includes(pathname)) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
+  return supabaseResponse;
+}
 
 export const config = {
   matcher: [
+    '/',
+    '/chat/:path*',
+    '/api/:path*',
+    '/login',
+    '/register',
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
-     * - _next/image (image optimization files)  
-     * - favicon.ico (favicon file)
-     * - public folder
+     * - _next/image (image optimization files)
+     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
   ],
-}
+};

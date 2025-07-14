@@ -2,10 +2,14 @@
 
 import { ChevronUp } from 'lucide-react';
 import Image from 'next/image';
-import type { User } from 'next-auth';
-import { signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 
+// Legacy NextAuth imports (commented out for migration)
+// import type { User } from 'next-auth';
+// import { signOut, useSession } from 'next-auth/react';
+
+import { signOut } from '@/app/(auth)/actions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,24 +22,53 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { useRouter } from 'next/navigation';
-import { toast } from './toast';
+import { isGuestUser } from '@/lib/supabase/auth';
+// New Supabase Auth imports
+import { useAuth } from './auth-provider';
 import { LoaderIcon } from './icons';
-import { guestRegex } from '@/lib/constants';
+import { toast } from './toast';
 
-export function SidebarUserNav({ user }: { user: User }) {
+// Legacy User type interface (for compatibility)
+interface User {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  companyName?: string | null;
+  type?: 'guest' | 'regular';
+}
+
+export function SidebarUserNav({ user: legacyUser }: { user: User }) {
   const router = useRouter();
-  const { data, status } = useSession();
+  const { user, profile, loading } = useAuth();
   const { setTheme, resolvedTheme } = useTheme();
 
-  const isGuest = guestRegex.test(data?.user?.email ?? '');
+  // Supabase Auth 사용자 정보 우선 사용, fallback으로 legacy user 사용
+  const currentUser = user || legacyUser;
+  const isGuest = currentUser?.email ? isGuestUser(currentUser.email) : true;
+  const displayName = profile
+    ? `${profile.first_name} ${profile.last_name}`.trim()
+    : legacyUser?.name || currentUser?.email;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+      toast({
+        type: 'error',
+        description: 'Sign out failed. Please try again.',
+      });
+    }
+  };
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {status === 'loading' ? (
+            {loading ? (
               <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10 justify-between">
                 <div className="flex flex-row gap-2">
                   <div className="size-6 bg-zinc-500/30 rounded-full animate-pulse" />
@@ -53,14 +86,14 @@ export function SidebarUserNav({ user }: { user: User }) {
                 className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10"
               >
                 <Image
-                  src={`https://avatar.vercel.sh/${user.email}`}
-                  alt={user.email ?? 'User Avatar'}
+                  src={`https://avatar.vercel.sh/${currentUser?.email}`}
+                  alt={currentUser?.email ?? 'User Avatar'}
                   width={24}
                   height={24}
                   className="rounded-full"
                 />
                 <span data-testid="user-email" className="truncate">
-                  {isGuest ? 'Guest' : user?.email}
+                  {isGuest ? 'Guest' : displayName || currentUser?.email}
                 </span>
                 <ChevronUp className="ml-auto" />
               </SidebarMenuButton>
@@ -74,7 +107,9 @@ export function SidebarUserNav({ user }: { user: User }) {
             <DropdownMenuItem
               data-testid="user-nav-item-theme"
               className="cursor-pointer"
-              onSelect={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              onSelect={() =>
+                setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
+              }
             >
               {`Toggle ${resolvedTheme === 'light' ? 'dark' : 'light'} mode`}
             </DropdownMenuItem>
@@ -84,22 +119,19 @@ export function SidebarUserNav({ user }: { user: User }) {
                 type="button"
                 className="w-full cursor-pointer"
                 onClick={() => {
-                  if (status === 'loading') {
+                  if (loading) {
                     toast({
                       type: 'error',
                       description:
                         'Checking authentication status, please try again!',
                     });
-
                     return;
                   }
 
                   if (isGuest) {
                     router.push('/login');
                   } else {
-                    signOut({
-                      redirectTo: '/',
-                    });
+                    handleSignOut();
                   }
                 }}
               >

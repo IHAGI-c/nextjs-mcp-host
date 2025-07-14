@@ -41,6 +41,15 @@ import { generateHashedPassword } from './utils';
 const client = postgres(process.env.POSTGRES_URL!);
 const db = drizzle(client);
 
+/*
+ * ============================================================================
+ * LEGACY AUTH FUNCTIONS (Deprecated - migrated to Supabase Auth)
+ * ============================================================================
+ * The following functions are no longer used after Supabase migration
+ * They are kept temporarily for backward compatibility during migration
+ */
+
+// DEPRECATED: Use Supabase Auth instead
 export async function getUser(email: string): Promise<Array<User>> {
   try {
     return await db.select().from(user).where(eq(user.email, email));
@@ -52,16 +61,30 @@ export async function getUser(email: string): Promise<Array<User>> {
   }
 }
 
-export async function createUser(email: string, password: string) {
+// DEPRECATED: Use Supabase Auth instead
+export async function createUser(
+  email: string,
+  password: string,
+  firstName?: string,
+  lastName?: string,
+  companyName?: string,
+) {
   const hashedPassword = generateHashedPassword(password);
 
   try {
-    return await db.insert(user).values({ email, password: hashedPassword });
+    return await db.insert(user).values({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      companyName,
+    });
   } catch (_error) {
     throw new ChatSDKError('bad_request:database', 'Failed to create user');
   }
 }
 
+// DEPRECATED: Use Supabase Auth instead
 export async function createGuestUser() {
   const email = `guest-${Date.now()}`;
   const password = generateHashedPassword(generateUUID());
@@ -78,6 +101,12 @@ export async function createGuestUser() {
     );
   }
 }
+
+/*
+ * ============================================================================
+ * ACTIVE FUNCTIONS (Still used after Supabase migration)
+ * ============================================================================
+ */
 
 export async function saveChat({
   id,
