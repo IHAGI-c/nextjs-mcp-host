@@ -1,13 +1,13 @@
-import {
-  AuthProvider,
+import { getSupabaseClient } from './supabase-client';
+import type {
   AuthCredentials,
   AuthError,
+  AuthProvider,
+  AuthProviderOptions,
+  AuthStateChangeCallback,
   Session,
   User,
-  AuthStateChangeCallback,
-  AuthProviderOptions,
-} from "./types";
-import { getSupabaseClient } from "./supabase-client";
+} from './types';
 
 export class SupabaseAuthProvider implements AuthProvider {
   private supabase;
@@ -18,7 +18,7 @@ export class SupabaseAuthProvider implements AuthProvider {
     this.options = {
       shouldPersistSession: true,
       redirectUrl:
-        typeof window !== "undefined"
+        typeof window !== 'undefined'
           ? `${window.location.origin}/api/auth/callback`
           : undefined,
       ...options,
@@ -35,17 +35,17 @@ export class SupabaseAuthProvider implements AuthProvider {
     // Determine name - prefer explicit first_name/last_name from our app
     // but fall back to name from Google/OAuth or email username
     const firstName =
-      metadata.first_name || metadata.name?.split(" ")[0] || null;
+      metadata.first_name || metadata.name?.split(' ')[0] || null;
     const lastName =
       metadata.last_name ||
-      metadata.name?.split(" ").slice(1).join(" ") ||
+      metadata.name?.split(' ').slice(1).join(' ') ||
       null;
 
     // Construct display name from available data
     const displayName =
       firstName && lastName
         ? `${firstName} ${lastName}`
-        : metadata.name || supabaseUser.email?.split("@")[0] || null;
+        : metadata.name || supabaseUser.email?.split('@')[0] || null;
 
     return {
       id: supabaseUser.id,
@@ -75,10 +75,10 @@ export class SupabaseAuthProvider implements AuthProvider {
   private formatError(error: any): AuthError | null {
     if (!error) return null;
 
-    console.error("Auth error:", error);
+    console.error('Auth error:', error);
 
     return {
-      message: error.message || "An unknown error occurred",
+      message: error.message || 'An unknown error occurred',
       status: error.status,
       code: error.code,
     };
@@ -137,11 +137,11 @@ export class SupabaseAuthProvider implements AuthProvider {
   async signInWithGoogle() {
     try {
       const { data, error } = await this.supabase.auth.signInWithOAuth({
-        provider: "google",
+        provider: 'google',
         options: {
           redirectTo: this.options.redirectUrl,
           queryParams: {
-            prompt: "select_account",
+            prompt: 'select_account',
           },
         },
       });
@@ -149,7 +149,7 @@ export class SupabaseAuthProvider implements AuthProvider {
       if (error) throw error;
 
       // For browser environments, handle the redirect
-      if (typeof window !== "undefined" && data?.url) {
+      if (typeof window !== 'undefined' && data?.url) {
         window.location.href = data.url;
       }
 
@@ -187,7 +187,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
       return this.formatSession(data.session);
     } catch (error) {
-      console.error("Error getting session:", error);
+      console.error('Error getting session:', error);
       return null;
     }
   }
@@ -200,7 +200,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
       return this.formatSession(data.session);
     } catch (error) {
-      console.error("Error refreshing session:", error);
+      console.error('Error refreshing session:', error);
       return null;
     }
   }
@@ -213,7 +213,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
       return this.formatUser(data.user);
     } catch (error) {
-      console.error("Error getting current user:", error);
+      console.error('Error getting current user:', error);
       return null;
     }
   }

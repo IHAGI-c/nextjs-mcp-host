@@ -32,3 +32,10 @@ export function generateUUID(): string {
     return v.toString(16);
   });
 }
+
+/**
+ * @returns true if google auth is disabled
+ */
+export function googleAuthDisabled() {
+  return process.env.NEXT_PUBLIC_GOOGLE_AUTH_DISABLED === 'true';
+}

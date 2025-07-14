@@ -1,12 +1,14 @@
 import Form from 'next/form';
-import { signOut } from '@/app/(auth)/actions';
+import { useAuthContext } from '@/providers/Auth';
 
 export const SignOutForm = () => {
+  const { signOut } = useAuthContext();
   return (
     <Form
       className="w-full"
       action={async () => {
         'use server';
+
         await signOut();
       }}
     >

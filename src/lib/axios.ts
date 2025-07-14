@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getCurrentUser } from './supabase/auth-server';
+import { getSupabaseClient } from './auth/supabase-client';
 
 export const API_URL = process.env.API_URL
   ? process.env.API_URL
@@ -11,10 +11,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const session = await getCurrentUser();
+  const supabase = getSupabaseClient();
 
-  if (session?.user?.id) {
-    config.headers.Authorization = `Bearer ${session.user.id}`;
+  if (supabase?.auth.getSession) {
+    config.headers.Authorization = `Bearer ${supabase.auth.getSession()}`;
   }
 
   return config;
@@ -34,9 +34,9 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       // 세션 갱신
-      const session = await getCurrentUser();
-      if (session?.user?.id) {
-        originalRequest.headers.Authorization = `Bearer ${session.user.id}`;
+      const supabase = getSupabaseClient();
+      if (supabase?.auth.getSession) {
+        originalRequest.headers.Authorization = `Bearer ${supabase.auth.getSession()}`;
         return api(originalRequest);
       }
     }

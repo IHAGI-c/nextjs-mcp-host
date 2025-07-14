@@ -1,13 +1,15 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from '@supabase/ssr';
+import { type NextRequest, NextResponse } from 'next/server';
 
 const NO_AUTH_PATHS = [
-  "/debug-auth",
-  "/signin",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/api/auth",
+  '/debug-auth',
+  '/signin',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/chat/:path*',
+  '/api/:path*',
+  '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
 ];
 
 export async function updateSession(request: NextRequest) {
@@ -19,7 +21,7 @@ export async function updateSession(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Missing Supabase URL or Anon Key");
+    throw new Error('Missing Supabase URL or Anon Key');
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -56,17 +58,17 @@ export async function updateSession(request: NextRequest) {
     !NO_AUTH_PATHS.some((path) => request.nextUrl.pathname.startsWith(path))
   ) {
     // Check if this is an API request
-    if (request.nextUrl.pathname.startsWith("/api/")) {
+    if (request.nextUrl.pathname.startsWith('/api/')) {
       // Return a JSON response with 401 Unauthorized status for API requests
       return NextResponse.json(
-        { error: "Unauthorized", message: "Authentication required" },
+        { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 },
       );
     }
 
     // For non-API requests, redirect to the login page
     const url = request.nextUrl.clone();
-    url.pathname = "/signin";
+    url.pathname = '/signin';
     return NextResponse.redirect(url);
   }
 
@@ -76,14 +78,14 @@ export async function updateSession(request: NextRequest) {
     NO_AUTH_PATHS.some((path) => request.nextUrl.pathname.startsWith(path))
   ) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = '/';
     return NextResponse.redirect(url);
   }
 
   // Redirect users from the /inbox page to the homepage
-  if (request.nextUrl.pathname.startsWith("/inbox")) {
+  if (request.nextUrl.pathname.startsWith('/inbox')) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = '/';
     return NextResponse.redirect(url);
   }
 
