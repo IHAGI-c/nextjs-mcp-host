@@ -1,28 +1,35 @@
-import "next-auth"
+import 'next-auth';
 
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session {
-    user: User
-    error?: string
+    user: {
+      id: string;
+      email: string | null;
+      name?: string | null;
+      type: 'guest' | 'regular';
+    };
+    error?: string;
   }
 
   interface User {
-    id: string
-    email: string
-    name: string
-    accessToken: string
-    refreshToken?: string
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    type: 'guest' | 'regular';
+    accessToken?: string;
+    refreshToken?: string;
   }
 }
 
-declare module "next-auth/jwt" {
+declare module 'next-auth/jwt' {
   interface JWT {
-    id: string
-    email: string
-    name: string
-    accessToken: string
-    refreshToken: string
-    accessTokenExpires: number
-    error?: string
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    type: 'guest' | 'regular';
+    accessToken?: string;
+    refreshToken?: string;
+    accessTokenExpires?: number;
+    error?: string;
   }
 }

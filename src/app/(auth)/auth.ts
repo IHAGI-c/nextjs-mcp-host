@@ -1,34 +1,11 @@
 import { compare } from 'bcrypt-ts';
-import NextAuth, { type DefaultSession } from 'next-auth';
-import type { DefaultJWT } from 'next-auth/jwt';
+import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { DUMMY_PASSWORD } from '@/lib/constants';
 import { createGuestUser, getUser } from '@/lib/db/queries';
 import { authConfig } from './auth.config';
 
 export type UserType = 'guest' | 'regular';
-
-declare module 'next-auth' {
-  interface Session extends DefaultSession {
-    user: {
-      id: string;
-      type: UserType;
-    } & DefaultSession['user'];
-  }
-
-  interface User {
-    id?: string;
-    email?: string | null;
-    type: UserType;
-  }
-}
-
-declare module 'next-auth/jwt' {
-  interface JWT extends DefaultJWT {
-    id: string;
-    type: UserType;
-  }
-}
 
 export const {
   handlers: { GET, POST },
