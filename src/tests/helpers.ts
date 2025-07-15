@@ -20,7 +20,6 @@ export type UserContext = {
 export async function createAuthenticatedContext({
   browser,
   name,
-  chatModel = 'chat-model',
 }: {
   browser: Browser;
   name: string;

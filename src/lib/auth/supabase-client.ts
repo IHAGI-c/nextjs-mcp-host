@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import Cookies from 'js-cookie';
 
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
@@ -31,10 +32,15 @@ export function getSupabaseClient() {
             ?.split('=')?.[1];
         },
         set(name, value, options) {
-          document.cookie = `${name}=${value}; path=${options?.path ?? '/'}; max-age=${options?.maxAge ?? 31536000}`;
+          Cookies.set(name, value, {
+            path: options?.path ?? '/',
+            expires: options?.maxAge
+              ? new Date(Date.now() + options.maxAge * 1000)
+              : new Date(Date.now() + 31536000000),
+          });
         },
         remove(name, options) {
-          document.cookie = `${name}=; path=${options?.path ?? '/'}; max-age=0`;
+          Cookies.remove(name, { path: options?.path ?? '/' });
         },
       },
     });

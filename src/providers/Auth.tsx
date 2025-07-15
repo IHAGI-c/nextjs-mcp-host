@@ -1,6 +1,7 @@
 'use client';
 
 import type { Session as SupabaseSession } from '@supabase/supabase-js';
+import Cookies from 'js-cookie';
 import type React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { SupabaseAuthProvider } from '@/lib/auth/supabase';
@@ -47,6 +48,13 @@ interface AuthContextProps {
   }>;
 }
 
+// Cookie utility functions
+const clearGuestCookie = () => {
+  if (typeof window !== 'undefined') {
+    Cookies.remove('guest-session');
+  }
+};
+
 // Helper function to get guest session from cookies
 function getGuestSession(): SupabaseSession | null {
   if (typeof window === 'undefined') return null;
@@ -66,8 +74,7 @@ function getGuestSession(): SupabaseSession | null {
 
     if (new Date() > expiresAt) {
       // Clear expired guest session
-      document.cookie =
-        'guest-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      clearGuestCookie();
       return null;
     }
 
@@ -261,10 +268,7 @@ export function AuthProvider({
     signOut: async () => {
       // If guest user, clear guest session
       if (user?.userType === 'guest') {
-        if (typeof window !== 'undefined') {
-          document.cookie =
-            'guest-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        }
+        clearGuestCookie();
         setSession(null);
         setUser(null);
         return { error: null };

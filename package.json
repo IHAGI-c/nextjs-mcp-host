@@ -11,7 +11,8 @@
     "format:check": "biome format .",
     "lint:biome": "biome lint .",
     "check": "biome check .",
-    "check:fix": "biome check --write ."
+    "check:fix": "biome check --write .",
+    "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.2",
@@ -95,6 +96,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
+    "@playwright/test": "^1.50.1",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/typography": "^0.5.15",
     "@types/diff-match-patch": "^1.0.36",

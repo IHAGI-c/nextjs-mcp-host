@@ -3,6 +3,7 @@ import type { UIMessagePart } from 'ai';
 import { genSaltSync, hashSync } from 'bcrypt-ts';
 import { type ClassValue, clsx } from 'clsx';
 import { format } from 'date-fns';
+import Cookies from 'js-cookie';
 import { nanoid } from 'nanoid';
 import { twMerge } from 'tailwind-merge';
 import type { User } from '@/lib/auth/types';
@@ -149,8 +150,7 @@ export function isGuestUserId(userId: string | null): boolean {
  */
 export function clearGuestSession(): void {
   if (typeof window !== 'undefined') {
-    document.cookie =
-      'guest-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    Cookies.remove('guest-session');
   }
 }
 
