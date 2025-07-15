@@ -1,4 +1,4 @@
-import { generateDummyPassword } from "./utils";
+import { generateDummyPassword } from './utils';
 
 export const isProductionEnvironment = process.env.NODE_ENV === 'production';
 export const isDevelopmentEnvironment = process.env.NODE_ENV === 'development';
@@ -8,6 +8,6 @@ export const isTestEnvironment = Boolean(
     process.env.CI_PLAYWRIGHT,
 );
 
-export const guestRegex = /^guest-\d+$/;
+export const guestRegex = /^guest_\d+_[a-z0-9]+$/;
 
 export const DUMMY_PASSWORD = generateDummyPassword();

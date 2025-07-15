@@ -1,3 +1,4 @@
+import type { UseChatHelpers } from '@ai-sdk/react';
 import { formatDistance } from 'date-fns';
 import equal from 'fast-deep-equal';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -11,6 +12,10 @@ import {
 } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useDebounceCallback, useWindowSize } from 'usehooks-ts';
+import { codeArtifact } from '@/artifacts/code/client';
+import { imageArtifact } from '@/artifacts/image/client';
+import { sheetArtifact } from '@/artifacts/sheet/client';
+import { textArtifact } from '@/artifacts/text/client';
 import { useArtifact } from '@/hooks/use-artifact';
 import type { Document, Vote } from '@/lib/db/schema';
 import type { Attachment, ChatMessage } from '@/lib/types';
@@ -23,10 +28,6 @@ import { Toolbar } from './toolbar';
 import { useSidebar } from './ui/sidebar';
 import { VersionFooter } from './version-footer';
 import type { VisibilityType } from './visibility-selector';
-import { textArtifact } from './text-artifact';
-import { codeArtifact } from './code-artifact';
-import { imageArtifact } from './image-artifact';
-import { sheetArtifact } from './sheet-artifact';
 
 export const artifactDefinitions = [
   textArtifact,

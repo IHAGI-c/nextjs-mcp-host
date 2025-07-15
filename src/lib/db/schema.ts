@@ -18,6 +18,9 @@ export const user = pgTable('User', {
   firstName: varchar('firstName', { length: 50 }),
   lastName: varchar('lastName', { length: 50 }),
   companyName: varchar('companyName', { length: 100 }),
+  userType: varchar('userType', { enum: ['regular', 'guest'] }).default(
+    'regular',
+  ),
 });
 
 export type User = InferSelectModel<typeof user>;

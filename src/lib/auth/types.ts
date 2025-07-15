@@ -7,6 +7,7 @@ export interface User {
   companyName?: string | null;
   avatarUrl?: string | null;
   metadata?: Record<string, any>;
+  userType?: UserType;
 }
 
 export interface Session {
@@ -33,10 +34,9 @@ export interface AuthCredentials {
   metadata?: Record<string, any>;
 }
 
-export interface AuthStateChangeCallback {
-  (session: Session | null): void;
-}
+export type AuthStateChangeCallback = (session: Session | null) => void;
 
+export type UserType = 'regular' | 'guest';
 export interface AuthProvider {
   // Core authentication methods
   signUp: (credentials: AuthCredentials) => Promise<{
@@ -52,6 +52,12 @@ export interface AuthProvider {
   }>;
 
   signInWithGoogle: () => Promise<{
+    user: User | null;
+    session: Session | null;
+    error: AuthError | null;
+  }>;
+
+  signInAsGuest: () => Promise<{
     user: User | null;
     session: Session | null;
     error: AuthError | null;

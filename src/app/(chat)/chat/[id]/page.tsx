@@ -2,20 +2,10 @@ import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { Chat } from '@/components/chat';
 import { DataStreamHandler } from '@/components/data-stream-handler';
+import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import { getSupabaseClient } from '@/lib/auth/supabase-client';
 import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
-
-const DEFAULT_CHAT_MODEL = 'gpt-4o';
-
-function convertToUIMessages(messages: any[]) {
-  // Simple implementation - should be replaced with proper logic
-  return messages.map((msg) => ({
-    id: msg.id,
-    role: msg.role,
-    content: msg.content,
-    createdAt: msg.createdAt,
-  }));
-}
+import { convertToUIMessages } from '@/lib/utils';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -29,19 +19,19 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   // Get current user from Supabase
   const supabase = getSupabaseClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session) {
     redirect('/api/auth/guest');
   }
 
   if (chat.visibility === 'private') {
-    if (!user) {
+    if (!session.user) {
       return notFound();
     }
 
-    if (user.id !== chat.userId) {
+    if (session.user.id !== chat.userId) {
       return notFound();
     }
   }
@@ -58,32 +48,32 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   if (!chatModelFromCookie) {
     return (
       <>
-        {/* <Chat
+        <Chat
           id={chat.id}
           initialMessages={uiMessages}
           initialChatModel={DEFAULT_CHAT_MODEL}
           initialVisibilityType={chat.visibility}
-          isReadonly={user?.id !== chat.userId}
-          session={user}
+          isReadonly={session.user.id !== chat.userId}
+          session={session}
           autoResume={true}
         />
-        <DataStreamHandler /> */}
+        <DataStreamHandler />
       </>
     );
   }
 
   return (
     <>
-      {/* <Chat
+      <Chat
         id={chat.id}
         initialMessages={uiMessages}
         initialChatModel={chatModelFromCookie.value}
         initialVisibilityType={chat.visibility}
-        isReadonly={user?.id !== chat.userId}
-        session={user}
+        isReadonly={session.user.id !== chat.userId}
+        session={session}
         autoResume={true}
       />
-      <DataStreamHandler /> */}
+      <DataStreamHandler />
     </>
   );
 }

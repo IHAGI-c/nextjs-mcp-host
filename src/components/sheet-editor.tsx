@@ -19,12 +19,7 @@ type SheetEditorProps = {
 const MIN_ROWS = 50;
 const MIN_COLS = 26;
 
-const PureSpreadsheetEditor = ({
-  content,
-  saveContent,
-  status,
-  isCurrentVersion,
-}: SheetEditorProps) => {
+const PureSpreadsheetEditor = ({ content, saveContent }: SheetEditorProps) => {
   const { resolvedTheme } = useTheme();
 
   const parseData = useMemo(() => {

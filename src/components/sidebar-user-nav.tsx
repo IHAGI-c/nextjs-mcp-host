@@ -17,24 +17,49 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { guestRegex } from '@/lib/constants';
+import { clearGuestSession } from '@/lib/utils';
 import { useAuthContext } from '@/providers/Auth';
 import { LoaderIcon } from './icons';
 import { toast } from './toast';
 
 export function SidebarUserNav({ user }: { user: User }) {
   const router = useRouter();
-  const { signOut, user: authUser } = useAuthContext();
+  const { isLoading, isGuest, signOut } = useAuthContext();
   const { setTheme, resolvedTheme } = useTheme();
 
-  const isGuest = guestRegex.test(authUser?.email ?? '');
+  const handleSignOut = async () => {
+    if (isLoading) {
+      toast({
+        type: 'error',
+        description: 'Checking authentication status, please try again!',
+      });
+      return;
+    }
+
+    if (isGuest) {
+      // Clear guest session and redirect to login
+      clearGuestSession();
+      router.push('/signin');
+    } else {
+      // Sign out from Supabase Auth
+      const { error } = await signOut();
+      if (error) {
+        toast({
+          type: 'error',
+          description: error.message,
+        });
+      } else {
+        router.push('/');
+      }
+    }
+  };
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {status === 'loading' ? (
+            {isLoading ? (
               <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10 justify-between">
                 <div className="flex flex-row gap-2">
                   <div className="size-6 bg-zinc-500/30 rounded-full animate-pulse" />
@@ -84,23 +109,7 @@ export function SidebarUserNav({ user }: { user: User }) {
               <button
                 type="button"
                 className="w-full cursor-pointer"
-                onClick={() => {
-                  if (status === 'loading') {
-                    toast({
-                      type: 'error',
-                      description:
-                        'Checking authentication status, please try again!',
-                    });
-
-                    return;
-                  }
-
-                  if (isGuest) {
-                    router.push('/login');
-                  } else {
-                    signOut();
-                  }
-                }}
+                onClick={handleSignOut}
               >
                 {isGuest ? 'Login to your account' : 'Sign out'}
               </button>
