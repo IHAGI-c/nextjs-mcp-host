@@ -18,7 +18,9 @@ export default async function Layout({
 }) {
   // Get current user from Supabase
   const supabase = getSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Create user object compatible with existing components
   const legacyUser = user

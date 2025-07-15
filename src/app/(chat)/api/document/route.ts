@@ -1,5 +1,5 @@
-import { auth } from '@/app/(auth)/auth';
 import type { ArtifactKind } from '@/components/artifact';
+import { getSupabaseClient } from '@/lib/auth/supabase-client';
 import {
   deleteDocumentsByIdAfterTimestamp,
   getDocumentsById,
@@ -18,7 +18,10 @@ export async function GET(request: Request) {
     ).toResponse();
   }
 
-  const session = await auth();
+  const supabase = getSupabaseClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (!session?.user) {
     return new ChatSDKError('unauthorized:document').toResponse();
@@ -50,9 +53,12 @@ export async function POST(request: Request) {
     ).toResponse();
   }
 
-  const session = await auth();
+  const supabase = getSupabaseClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!session?.user) {
+  if (!session) {
     return new ChatSDKError('not_found:document').toResponse();
   }
 
@@ -103,9 +109,12 @@ export async function DELETE(request: Request) {
     ).toResponse();
   }
 
-  const session = await auth();
+  const supabase = getSupabaseClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!session?.user) {
+  if (!session) {
     return new ChatSDKError('unauthorized:document').toResponse();
   }
 

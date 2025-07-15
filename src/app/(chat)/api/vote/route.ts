@@ -1,4 +1,4 @@
-import { auth } from '@/app/(auth)/auth';
+import { getSupabaseClient } from '@/lib/auth/supabase-client';
 import { getChatById, getVotesByChatId, voteMessage } from '@/lib/db/queries';
 import { ChatSDKError } from '@/lib/errors';
 
@@ -13,7 +13,10 @@ export async function GET(request: Request) {
     ).toResponse();
   }
 
-  const session = await auth();
+  const supabase = getSupabaseClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (!session?.user) {
     return new ChatSDKError('unauthorized:vote').toResponse();
@@ -49,7 +52,10 @@ export async function PATCH(request: Request) {
     ).toResponse();
   }
 
-  const session = await auth();
+  const supabase = getSupabaseClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (!session?.user) {
     return new ChatSDKError('unauthorized:vote').toResponse();

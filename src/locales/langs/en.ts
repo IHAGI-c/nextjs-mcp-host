@@ -43,16 +43,16 @@ export default {
       message: 'Please check your email for verification',
       description: 'Click the link in your email to activate your account',
       emailNotReceived: 'Did not receive the email?',
-      goToLogin: 'Go to login page'
-    }
+      goToLogin: 'Go to login page',
+    },
   },
   theme: {
     light: 'Light',
     dark: 'Dark',
-    system: 'System'
+    system: 'System',
   },
   language: {
     english: 'English',
-    korean: '한국어'
-  }
+    korean: '한국어',
+  },
 };

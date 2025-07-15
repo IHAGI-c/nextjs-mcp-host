@@ -1,5 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { changeLanguage, getCurrentLanguage, supportedLanguages } from './translate.utils';
+import {
+  changeLanguage,
+  getCurrentLanguage,
+  supportedLanguages,
+} from './translate.utils';
 
 export function useLocales() {
   const { t, i18n } = useTranslation();
@@ -21,7 +25,9 @@ export function useLocales() {
   const languages = supportedLanguages;
 
   // 현재 언어 정보
-  const currentLanguageInfo = languages.find(lang => lang.code === currentLanguage);
+  const currentLanguageInfo = languages.find(
+    (lang) => lang.code === currentLanguage,
+  );
 
   return {
     t: translate,
@@ -37,4 +43,4 @@ export function useLocales() {
 export function useT() {
   const { t } = useTranslation();
   return (key: string, options?: any): string => t(key, options) as string;
-} 
+}

@@ -19,12 +19,12 @@ export async function changeLanguage(language: string): Promise<void> {
 // 지원되는 언어 목록
 export const supportedLanguages = [
   { code: 'en', name: 'English' },
-  { code: 'ko', name: '한국어' }
+  { code: 'ko', name: '한국어' },
 ];
 
 // 언어 코드로 언어 이름 가져오기
 export function getLanguageName(code: string): string {
-  const language = supportedLanguages.find(lang => lang.code === code);
+  const language = supportedLanguages.find((lang) => lang.code === code);
   return language ? language.name : code;
 }
 
@@ -34,11 +34,15 @@ export function translateNested(key: string, options?: any): string {
 }
 
 // 복수형 번역
-export function translatePlural(key: string, count: number, options?: any): string {
+export function translatePlural(
+  key: string,
+  count: number,
+  options?: any,
+): string {
   return i18n.t(key, { count, ...options }) as string;
 }
 
 // 번역 키 존재 여부 확인
 export function translationExists(key: string): boolean {
   return i18n.exists(key);
-} 
+}

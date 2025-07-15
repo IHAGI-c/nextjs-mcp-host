@@ -17,7 +17,7 @@ export default function LanguageWrapper({ children }: LanguageWrapperProps) {
     if (savedLanguage && ['en', 'ko'].includes(savedLanguage)) {
       i18n.changeLanguage(savedLanguage);
     }
-    
+
     setIsInitialized(true);
   }, []);
 
@@ -26,4 +26,4 @@ export default function LanguageWrapper({ children }: LanguageWrapperProps) {
   }
 
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
-} 
+}

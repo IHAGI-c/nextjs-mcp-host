@@ -43,16 +43,16 @@ export default {
       message: '이메일 확인을 위해 메일을 확인해주세요',
       description: '이메일 링크를 클릭하여 계정을 활성화하세요',
       emailNotReceived: '이메일을 받지 못하셨나요?',
-      goToLogin: '로그인 페이지로 이동'
-    }
+      goToLogin: '로그인 페이지로 이동',
+    },
   },
   theme: {
     light: '라이트',
     dark: '다크',
-    system: '시스템'
+    system: '시스템',
   },
   language: {
     english: 'English',
-    korean: '한국어'
-  }
+    korean: '한국어',
+  },
 };
