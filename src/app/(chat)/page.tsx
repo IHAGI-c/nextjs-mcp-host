@@ -1,38 +1,31 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-
 import { Chat } from '@/components/chat';
 import { DataStreamHandler } from '@/components/data-stream-handler';
+import { getSupabaseClient } from '@/lib/auth/supabase-client';
 import { generateUUID } from '@/lib/utils';
 
-// Legacy NextAuth import (commented out for migration)
-// import { auth } from '../(auth)/auth';
-
-// New Supabase Auth import
-import { getCurrentUser } from '@/lib/supabase/auth-server';
-
-// Temporary default chat model (should be moved to proper constants file)
-const DEFAULT_CHAT_MODEL = 'gpt-4';
+const DEFAULT_CHAT_MODEL = 'gpt-4o';
 
 export default async function Page() {
   // Get current user from Supabase
-  const { user, profile } = await getCurrentUser();
+  const supabase = getSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect('/api/auth/guest');
   }
 
-  // Create session object compatible with existing components
   const session = {
     user: {
       id: user.id,
       email: user.email || null,
-      name: profile
-        ? `${profile.first_name} ${profile.last_name}`.trim()
-        : user.email || null,
-      firstName: profile?.first_name || null,
-      lastName: profile?.last_name || null,
-      companyName: profile?.company_name || null,
+      name: user.user_metadata.name || null,
+      firstName: user.user_metadata.first_name || null,
+      lastName: user.user_metadata.last_name || null,
+      companyName: user.user_metadata.company_name || null,
       type: user.email?.startsWith('guest-')
         ? ('guest' as const)
         : ('regular' as const),

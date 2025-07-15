@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '@/components/alert';
 import { PasswordInput } from '@/components/password-input';
+import { toast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +19,6 @@ export default function SigninInterface() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
@@ -35,7 +35,10 @@ export default function SigninInterface() {
     // Check for error parameter
     const urlError = searchParams.get('error');
     if (urlError) {
-      setError(urlError);
+      toast({
+        type: 'error',
+        description: urlError,
+      });
     }
   }, [searchParams]);
 
@@ -48,10 +51,12 @@ export default function SigninInterface() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     if (!email || !password) {
-      setError('Please enter both email and password');
+      toast({
+        type: 'error',
+        description: 'Please enter both email and password',
+      });
       return;
     }
 
@@ -64,7 +69,10 @@ export default function SigninInterface() {
       });
 
       if (result.error) {
-        setError(result.error.message);
+        toast({
+          type: 'error',
+          description: result.error.message,
+        });
         return;
       }
 
@@ -74,10 +82,13 @@ export default function SigninInterface() {
       // Set a timer to show manual redirect button after 5 seconds
       setTimeout(() => {
         setShowManualRedirect(true);
-      }, 5000);
+      }, 1000);
     } catch (err) {
       console.error('Sign in error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      toast({
+        type: 'error',
+        description: 'An unexpected error occurred. Please try again.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,12 +96,14 @@ export default function SigninInterface() {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    setError(null);
 
     const { error } = await signInWithGoogle();
     if (error) {
       setIsLoading(false);
-      setError(error.message);
+      toast({
+        type: 'error',
+        description: error.message,
+      });
 
       return;
     }
@@ -135,16 +148,13 @@ export default function SigninInterface() {
           className="flex flex-col gap-4 px-4 sm:px-16"
         >
           <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="email"
-              className="dark:text-zinc-400"
-            >
+            <Label htmlFor="email" className="dark:text-zinc-400">
               Email
             </Label>
             <Input
               id="email"
               type="email"
-              className="text-md md:text-sm"
+              className="dark:bg-muted text-md md:text-sm"
               autoComplete="email"
               placeholder="name@example.com"
               onChange={(e) => setEmail(e.target.value)}
@@ -156,10 +166,7 @@ export default function SigninInterface() {
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <Label
-                htmlFor="password"
-                className="dark:text-zinc-400"
-              >
+              <Label htmlFor="password" className="dark:text-zinc-400">
                 Password
               </Label>
               <Link
@@ -172,18 +179,12 @@ export default function SigninInterface() {
             <PasswordInput
               id="password"
               placeholder="Enter your password"
-              className="text-md md:text-sm"
+              className="dark:bg-muted text-md md:text-sm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
 
           <Button
             type="submit"

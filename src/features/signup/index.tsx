@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { z } from 'zod';
-import { Alert, AlertDescription } from '@/components/alert';
 import { PasswordInput } from '@/components/password-input';
+import { toast } from '@/components/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,7 +50,6 @@ export default function SignupInterface() {
   const [errors, setErrors] = useState<
     Partial<Record<keyof SignupFormValues, string>>
   >({});
-  const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const validateForm = () => {
@@ -82,7 +81,6 @@ export default function SignupInterface() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthError(null);
 
     if (!validateForm()) return;
 
@@ -101,7 +99,10 @@ export default function SignupInterface() {
       });
 
       if (error) {
-        setAuthError(error.message);
+        toast({
+          type: 'error',
+          description: error.message,
+        });
         return;
       }
 
@@ -111,7 +112,10 @@ export default function SignupInterface() {
       );
     } catch (error) {
       console.error('Signup error:', error);
-      setAuthError('An unexpected error occurred. Please try again.');
+      toast({
+        type: 'error',
+        description: 'An unexpected error occurred. Please try again.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -119,18 +123,23 @@ export default function SignupInterface() {
 
   const handleGoogleSignup = async () => {
     setIsLoading(true);
-    setAuthError(null);
 
     try {
       const { error } = await signInWithGoogle();
 
       if (error) {
-        setAuthError(error.message);
+        toast({
+          type: 'error',
+          description: error.message,
+        });
       }
       // The redirect will be handled by the OAuth provider
     } catch (error) {
       console.error('Google signup error:', error);
-      setAuthError('An error occurred while signing up with Google.');
+      toast({
+        type: 'error',
+        description: 'An error occurred while signing up with Google.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -158,14 +167,14 @@ export default function SignupInterface() {
                 id="firstName"
                 name="firstName"
                 type="text"
-                className="text-md md:text-sm"
+                className="dark:bg-muted text-md md:text-sm"
                 placeholder="John"
                 value={formValues.firstName || ''}
                 onChange={handleInputChange}
                 aria-invalid={!!errors.firstName}
               />
               {errors.firstName && (
-                <p className="text-destructive text-sm">{errors.firstName}</p>
+                <p className="text-destructive text-xs">{errors.firstName}</p>
               )}
             </div>
 
@@ -177,14 +186,14 @@ export default function SignupInterface() {
                 id="lastName"
                 name="lastName"
                 type="text"
-                className="text-md md:text-sm"
+                className="dark:bg-muted text-md md:text-sm"
                 placeholder="Doe"
                 value={formValues.lastName || ''}
                 onChange={handleInputChange}
                 aria-invalid={!!errors.lastName}
               />
               {errors.lastName && (
-                <p className="text-destructive text-sm">{errors.lastName}</p>
+                <p className="text-destructive text-xs">{errors.lastName}</p>
               )}
             </div>
           </div>
@@ -198,14 +207,14 @@ export default function SignupInterface() {
               id="companyName"
               name="companyName"
               type="text"
-              className="text-md md:text-sm"
+              className="dark:bg-muted text-md md:text-sm"
               placeholder="Your Company Inc."
               value={formValues.companyName || ''}
               onChange={handleInputChange}
               aria-invalid={!!errors.companyName}
             />
             {errors.companyName && (
-              <p className="text-destructive text-sm">{errors.companyName}</p>
+              <p className="text-destructive text-xs">{errors.companyName}</p>
             )}
           </div>
 
@@ -217,14 +226,14 @@ export default function SignupInterface() {
               id="email"
               name="email"
               type="email"
-              className="text-md md:text-sm"
+              className="dark:bg-muted text-md md:text-sm"
               placeholder="name@example.com"
               value={formValues.email || ''}
               onChange={handleInputChange}
               aria-invalid={!!errors.email}
             />
             {errors.email && (
-              <p className="text-destructive text-sm">{errors.email}</p>
+              <p className="text-destructive text-xs">{errors.email}</p>
             )}
           </div>
 
@@ -235,14 +244,14 @@ export default function SignupInterface() {
             <PasswordInput
               id="password"
               name="password"
-              className="text-md md:text-sm"
+              className="dark:bg-muted text-md md:text-sm"
               placeholder="Create a password"
               value={formValues.password || ''}
               onChange={handleInputChange}
               aria-invalid={!!errors.password}
             />
             {errors.password && (
-              <p className="text-destructive text-sm">{errors.password}</p>
+              <p className="text-destructive text-xs">{errors.password}</p>
             )}
           </div>
 
@@ -253,24 +262,18 @@ export default function SignupInterface() {
             <PasswordInput
               id="confirmPassword"
               name="confirmPassword"
-              className="text-md md:text-sm"
+              className="dark:bg-muted text-md md:text-sm"
               placeholder="Confirm your password"
               value={formValues.confirmPassword || ''}
               onChange={handleInputChange}
               aria-invalid={!!errors.confirmPassword}
             />
             {errors.confirmPassword && (
-              <p className="text-destructive text-sm">
+              <p className="text-destructive text-xs">
                 {errors.confirmPassword}
               </p>
             )}
           </div>
-
-          {authError && (
-            <Alert variant="destructive">
-              <AlertDescription>{authError}</AlertDescription>
-            </Alert>
-          )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Creating Account...' : 'Create Account'}

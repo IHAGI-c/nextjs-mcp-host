@@ -40,27 +40,25 @@ function Toast(props: ToastProps) {
   }, [description]);
 
   return (
-    <div className="flex w-full toast-mobile:w-[356px] justify-center">
+    <div
+      data-testid="toast"
+      key={id}
+      className={cn(
+        'bg-background border shadow-lg p-3 rounded-lg w-full toast-mobile:w-fit flex flex-row gap-3 min-w-[300px] max-w-[356px] mx-auto',
+        multiLine ? 'items-start' : 'items-center',
+      )}
+    >
       <div
-        data-testid="toast"
-        key={id}
+        data-type={type}
         className={cn(
-          'bg-zinc-100 p-3 rounded-lg w-full toast-mobile:w-fit flex flex-row gap-3',
-          multiLine ? 'items-start' : 'items-center',
+          'data-[type=error]:text-red-600 data-[type=success]:text-green-600',
+          { 'pt-1': multiLine },
         )}
       >
-        <div
-          data-type={type}
-          className={cn(
-            'data-[type=error]:text-red-600 data-[type=success]:text-green-600',
-            { 'pt-1': multiLine },
-          )}
-        >
-          {iconsByType[type]}
-        </div>
-        <div ref={descriptionRef} className="text-zinc-950 text-sm">
-          {description}
-        </div>
+        {iconsByType[type]}
+      </div>
+      <div ref={descriptionRef} className="text-foreground text-sm flex-1">
+        {description}
       </div>
     </div>
   );

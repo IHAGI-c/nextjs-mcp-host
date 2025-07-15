@@ -9,7 +9,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 // import { auth } from '../(auth)/auth';
 
 // New Supabase Auth import
-import { getCurrentUser } from '@/lib/supabase/auth-server';
+import { getSupabaseClient } from '@/lib/auth/supabase-client';
 
 export default async function Layout({
   children,
@@ -17,19 +17,18 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   // Get current user from Supabase
-  const { user, profile } = await getCurrentUser();
+  const supabase = getSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   // Create user object compatible with existing components
   const legacyUser = user
     ? {
         id: user.id,
         email: user.email || null,
-        name: profile
-          ? `${profile.first_name} ${profile.last_name}`.trim()
-          : user.email || null,
-        firstName: profile?.first_name || null,
-        lastName: profile?.last_name || null,
-        companyName: profile?.company_name || null,
+        name: user.user_metadata.name || null,
+        firstName: user.user_metadata.first_name || null,
+        lastName: user.user_metadata.last_name || null,
+        companyName: user.user_metadata.company_name || null,
         type: user.email?.startsWith('guest-')
           ? ('guest' as const)
           : ('regular' as const),

@@ -120,3 +120,42 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Sonner Toast 중앙 정렬을 위한 커스텀 스타일 */
+@layer components {
+  /* Sonner 컨테이너를 정중앙에 위치시키기 */
+  [data-sonner-toaster] {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* Sonner 토스트 개별 요소의 중앙 정렬 */
+  [data-sonner-toaster] [data-sonner-toast] {
+    margin: 0 auto !important;
+    width: fit-content !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* Toaster 컨테이너 중앙 정렬 */
+  .toaster-center {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  
+  /* 개별 토스트 중앙 정렬 */
+  .toast-center {
+    margin: 0 auto !important;
+    width: fit-content !important;
+  }
+  
+  /* 모바일에서의 토스트 너비 조정 */
+  @media (max-width: 600px) {
+    [data-sonner-toaster] [data-sonner-toast] {
+      width: calc(100vw - 2rem) !important;
+      max-width: 356px !important;
+    }
+  }
+}
